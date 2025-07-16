@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 import requests
 from io import BytesIO
 
@@ -7,25 +7,21 @@ app = Flask(__name__)
 
 def get_image_resolution(url):
     try:
+        print(f"🟡 Получаю изображение: {url}")
         response = requests.get(url, timeout=10)
         response.raise_for_status()
+
+        # Проверим Content-Type, чтобы избежать SVG, HTML и т.п.
+        content_type = response.headers.get("Content-Type", "")
+        if not content_type.startswith("image/"):
+            return f"Неверный Content-Type: {content_type}"
+
+        # Пытаемся открыть как изображение
         img = Image.open(BytesIO(response.content))
+        img.verify()  # проверка валидности
+        img = Image.open(BytesIO(response.content))  # повторно открыть
+
         return img.size  # (width, height)
-    except Exception as e:
-        return str(e)
-
-@app.route("/resolution", methods=["GET"])
-def resolution():
-    url = request.args.get("url")
-    if not url:
-        return jsonify({"error": "Missing 'url' parameter"}), 400
-
-    result = get_image_resolution(url)
-    if isinstance(result, tuple):
-        width, height = result
-        return jsonify({"width": width, "height": height})
-    else:
-        return jsonify({"error": result}), 500
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000)
+    except UnidentifiedImageError:
+        return "Ошибка: невозможно определить формат изображения"
+    except requests.exceptions.Re
