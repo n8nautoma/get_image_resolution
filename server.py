@@ -11,7 +11,7 @@ def get_image_resolution(url):
         response = requests.get(url, timeout=10)
         response.raise_for_status()
 
-        content_type = response.headers.get("Content-Type", "")a
+        content_type = response.headers.get("Content-Type", "")
         print(f"ℹ️ Content-Type: {content_type}")
 
         if not content_type.startswith("image/"):
@@ -51,4 +51,11 @@ def health():
     return jsonify({"status": "OK"})
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    import os
+    port = int(os.environ.get('PORT', 5000))
+    print(f"🚀 Starting server on port {port}")
+    try:
+        app.run(host='0.0.0.0', port=port, debug=False)
+    except Exception as e:
+        print(f"❌ Error starting server: {e}")
+        raise
